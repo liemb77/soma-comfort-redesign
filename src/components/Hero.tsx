@@ -30,48 +30,46 @@ type Motion = "drop" | "fade" | "slide" | "rise";
 interface Callout {
   index: string;
   title: string;
+  accent: string;
   desc: string;
   range: [number, number, number, number];
-  position: string;
   motion: Motion;
 }
 
 const CALLOUTS: Callout[] = [
   {
     index: "01",
-    title: "Sense your body",
+    title: "Sense your",
+    accent: "body.",
     desc: "Reads HRV, skin temperature, motion and stress patterns from your Apple Watch, Fitbit, Oura Ring — or the dedicated Soma Band. It runs quietly in the background, so there's never an app to open or a reading to check.",
     range: [0.1, 0.16, 0.27, 0.33],
-    position: "sm:top-[13%] sm:right-[6%] lg:right-[9%]",
     motion: "drop",
   },
   {
     index: "02",
-    title: "Read your environment",
+    title: "Read your",
+    accent: "environment.",
     desc: "Connected to your thermostat, smart lights, plugs and sensors, Soma knows exactly what your room feels like right now — not just what the thermostat is set to.",
     range: [0.35, 0.41, 0.52, 0.58],
-    position: "sm:top-[42%] sm:left-[5%] lg:left-[8%]",
     motion: "fade",
   },
   {
     index: "03",
-    title: "Compute your score",
+    title: "Compute your",
+    accent: "score.",
     desc: "A live Comfort Score from 0–100 fuses your body data with your environment into one number. The engine learns your personal baseline over days and weeks, so it knows what \"comfortable\" actually means for you.",
     range: [0.6, 0.66, 0.77, 0.83],
-    position: "sm:top-[42%] sm:right-[6%] lg:right-[9%]",
     motion: "slide",
   },
   {
     index: "04",
-    title: "Adjust invisibly",
+    title: "Adjust",
+    accent: "invisibly.",
     desc: "Temperature drifts, lights shift, airflow adjusts — before you'd ever notice discomfort. No notifications to dismiss, no dashboard to check. It just works, quietly, in the background.",
     range: [0.85, 0.89, 0.96, 0.99],
-    position: "sm:bottom-[14%] sm:left-[5%] lg:left-[8%]",
     motion: "rise",
   },
 ];
-
-const TEXT_SHADOW = "0 1px 3px rgba(0,0,0,1), 0 2px 16px rgba(0,0,0,0.95), 0 0 48px rgba(0,0,0,0.7)";
 
 function ScrollCallout({ callout, progress }: { callout: Callout; progress: MotionValue<number> }) {
   const opacity = useTransform(progress, (p) => keyframes(p, callout.range, [0, 1, 1, 0]));
@@ -79,37 +77,26 @@ function ScrollCallout({ callout, progress }: { callout: Callout; progress: Moti
   // Each callout enters on its own axis — a drop from above, a plain fade
   // with no movement, a slide in from the side, or a rise from below — so
   // scrolling through all four reads as distinct movement, not one repeated
-  // animation firing four times.
-  const isRightSide = callout.position.includes("right");
+  // animation firing four times. They all land in the same slot the headline
+  // used (not scattered around the frame), so the motion is the only thing
+  // that varies, not the position.
   const y = useTransform(progress, (p) => {
-    const t = keyframes(p, callout.range, [0, 1, 1, 0]);
-    if (callout.motion === "drop") return keyframes(p, callout.range, [-48, 0, 0, -16]);
-    if (callout.motion === "rise") return keyframes(p, callout.range, [48, 0, 0, 16]);
-    return (1 - t) * 6;
+    if (callout.motion === "drop") return keyframes(p, callout.range, [-40, 0, 0, -14]);
+    if (callout.motion === "rise") return keyframes(p, callout.range, [40, 0, 0, 14]);
+    return 0;
   });
   const x = useTransform(progress, (p) => {
     if (callout.motion !== "slide") return 0;
-    const from = isRightSide ? 56 : -56;
-    return keyframes(p, callout.range, [from, 0, 0, from * 0.3]);
+    return keyframes(p, callout.range, [36, 0, 0, 12]);
   });
 
   return (
-    <motion.div
-      style={{ opacity, y, x }}
-      className={`pointer-events-none absolute inset-x-6 bottom-[16%] w-auto max-w-[380px] text-left sm:inset-x-auto sm:bottom-auto sm:max-w-[420px] ${callout.position}`}
-    >
-      <span className="font-display text-sm font-bold text-accent" style={{ textShadow: TEXT_SHADOW }}>
-        {callout.index}
-      </span>
-      <h4
-        className="mt-1 font-display text-3xl font-semibold leading-tight text-white sm:text-4xl"
-        style={{ textShadow: TEXT_SHADOW }}
-      >
-        {callout.title}
+    <motion.div style={{ opacity, y, x }} className="pointer-events-none absolute inset-0 flex flex-col justify-center">
+      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">{callout.index}</span>
+      <h4 className="mt-3 font-display text-[clamp(1.75rem,4.2vw,3rem)] font-medium leading-[1.05] text-white">
+        {callout.title} <span className="italic font-extrabold">{callout.accent}</span>
       </h4>
-      <p className="mt-3 max-w-[360px] text-[15px] leading-relaxed text-white/80 sm:text-base" style={{ textShadow: TEXT_SHADOW }}>
-        {callout.desc}
-      </p>
+      <p className="mt-4 max-w-md text-[15px] leading-relaxed text-white/70 sm:text-base">{callout.desc}</p>
     </motion.div>
   );
 }
@@ -162,42 +149,47 @@ export default function Hero() {
           }}
         />
 
+        {/* Headline and the four scroll callouts share this exact zone —
+            the callouts replace the headline in place once it fades,
+            rather than appearing scattered around the frame. */}
         <div className="absolute inset-x-0 top-0 flex h-[46%] flex-col justify-center px-6 sm:inset-y-0 sm:left-0 sm:top-auto sm:h-full sm:w-[52%] sm:justify-center sm:px-10 lg:w-[44%] lg:px-14">
-          <motion.div
-            style={{ opacity: textOpacity, y: textY }}
-            className="pointer-events-none flex flex-col items-start text-left"
-          >
-            <span className="mb-4 flex items-center gap-2 rounded-full border border-white/25 bg-black/25 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-xl">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-              Works with the watch you already own
-            </span>
-            <h1 className="font-display text-[clamp(2rem,5vw,3.75rem)] font-medium leading-[1.05] text-white">
-              Comfort, <span className="italic font-extrabold">Automated.</span>
-            </h1>
-            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-white/70 sm:text-base">
-              Soma reads your body, learns your preferences, and silently adjusts your environment —
-              temperature, light, airflow — before you feel uncomfortable.
-            </p>
-            <div className="pointer-events-auto mt-8 flex flex-wrap items-center gap-3">
-              <a
-                href="#waitlist"
-                className="cursor-pointer rounded-full bg-white px-6 py-3 text-sm font-semibold text-black shadow-[0_0_36px_rgba(47,134,255,0.35)] ring-1 ring-accent/30 transition-transform hover:scale-[1.03]"
-              >
-                Join the waitlist
-              </a>
-              <a
-                href="#how-it-works"
-                className="cursor-pointer rounded-full border border-white/30 bg-black/20 px-6 py-3 text-sm font-semibold text-white backdrop-blur-xl transition-colors hover:border-white/50"
-              >
-                See how it works
-              </a>
-            </div>
-          </motion.div>
-        </div>
+          <div className="relative h-full w-full">
+            <motion.div
+              style={{ opacity: textOpacity, y: textY }}
+              className="pointer-events-none absolute inset-0 flex flex-col justify-center text-left"
+            >
+              <span className="mb-4 flex w-fit items-center gap-2 rounded-full border border-white/25 bg-black/25 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-xl">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                Works with the watch you already own
+              </span>
+              <h1 className="font-display text-[clamp(2rem,5vw,3.75rem)] font-medium leading-[1.05] text-white">
+                Comfort, <span className="italic font-extrabold">Automated.</span>
+              </h1>
+              <p className="mt-5 max-w-md text-[15px] leading-relaxed text-white/70 sm:text-base">
+                Soma reads your body, learns your preferences, and silently adjusts your environment —
+                temperature, light, airflow — before you feel uncomfortable.
+              </p>
+              <div className="pointer-events-auto mt-8 flex flex-wrap items-center gap-3">
+                <a
+                  href="#waitlist"
+                  className="cursor-pointer rounded-full bg-white px-6 py-3 text-sm font-semibold text-black shadow-[0_0_36px_rgba(47,134,255,0.35)] ring-1 ring-accent/30 transition-transform hover:scale-[1.03]"
+                >
+                  Join the waitlist
+                </a>
+                <a
+                  href="#how-it-works"
+                  className="cursor-pointer rounded-full border border-white/30 bg-black/20 px-6 py-3 text-sm font-semibold text-white backdrop-blur-xl transition-colors hover:border-white/50"
+                >
+                  See how it works
+                </a>
+              </div>
+            </motion.div>
 
-        {CALLOUTS.map((callout) => (
-          <ScrollCallout key={callout.index} callout={callout} progress={scrollYProgress} />
-        ))}
+            {CALLOUTS.map((callout) => (
+              <ScrollCallout key={callout.index} callout={callout} progress={scrollYProgress} />
+            ))}
+          </div>
+        </div>
 
         <motion.div
           style={{ opacity: dotsOpacity }}

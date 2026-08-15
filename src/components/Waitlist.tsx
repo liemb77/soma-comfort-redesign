@@ -3,9 +3,9 @@ const BENEFITS = ["Early app access", "Founder pricing on Pro", "Hardware launch
 export default function Waitlist() {
   return (
     <section id="waitlist" className="bg-background px-6 py-28 sm:py-36">
-      <div className="mx-auto flex max-w-2xl flex-col items-center rounded-[32px] border border-primary/20 bg-surface px-8 py-16 text-center sm:px-16">
+      <div className="mx-auto flex max-w-2xl flex-col items-center rounded-[32px] border border-accent/25 bg-surface px-8 py-16 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] sm:px-16">
         <h2 className="font-display text-3xl leading-tight text-foreground sm:text-4xl">
-          The app is almost ready. <span className="italic text-primary">Get in early.</span>
+          The app is almost ready. <span className="italic text-accent">Get in early.</span>
         </h2>
         <p className="mt-4 max-w-md text-sm leading-relaxed text-foreground/65">
           Soma app early access is opening soon. Sign up and we&rsquo;ll send you a link the moment it&rsquo;s live —
@@ -21,7 +21,7 @@ export default function Waitlist() {
           />
           <button
             type="submit"
-            className="cursor-pointer rounded-full bg-primary px-6 py-3 text-sm font-semibold text-background transition-transform hover:scale-[1.03]"
+            className="cursor-pointer rounded-full bg-primary px-6 py-3 text-sm font-semibold text-background shadow-[0_0_24px_rgba(47,134,255,0.3)] ring-1 ring-accent/30 transition-transform hover:scale-[1.03]"
           >
             Join waitlist
           </button>

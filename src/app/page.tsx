@@ -1,5 +1,4 @@
 import Hero from "@/components/Hero";
-import HorizontalFeatures from "@/components/HorizontalFeatures";
 import Features from "@/components/Features";
 import Pricing from "@/components/Pricing";
 import Hardware from "@/components/Hardware";
@@ -10,7 +9,6 @@ export default function Home() {
   return (
     <main>
       <Hero />
-      <HorizontalFeatures />
       <Features />
       <Pricing />
       <Hardware />

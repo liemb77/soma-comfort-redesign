@@ -6,17 +6,6 @@ import dynamic from "next/dynamic";
 
 const CanyonScrubber = dynamic(() => import("./CanyonScrubber"), { ssr: false });
 
-interface Beat {
-  text: string;
-  range: [number, number, number, number];
-}
-
-const STORY_BEATS: Beat[] = [
-  { text: "One loop. Endless comfort.", range: [0.16, 0.22, 0.32, 0.38] },
-  { text: "Built for people who feel everything.", range: [0.42, 0.48, 0.58, 0.64] },
-  { text: "Your devices, finally connected.", range: [0.68, 0.74, 0.82, 0.88] },
-];
-
 // Generic clamped piecewise-linear interpolation, computed directly rather
 // than via a keyframe-array useTransform — keyframe arrays here were
 // observed producing a mirrored/ping-pong curve instead of clamping past
@@ -36,18 +25,105 @@ function keyframes(p: number, inputs: readonly number[], outputs: readonly numbe
   return outputs[last];
 }
 
-function StoryBeat({ beat, progress }: { beat: Beat; progress: MotionValue<number> }) {
-  const opacity = useTransform(progress, (p) => keyframes(p, beat.range, [0, 1, 1, 0]));
-  const y = useTransform(progress, (p) => keyframes(p, beat.range, [16, 0, 0, -16]));
+type Motion = "drop" | "fade" | "slide" | "rise";
+
+interface Callout {
+  index: string;
+  title: string;
+  desc: string;
+  range: [number, number, number, number];
+  position: string;
+  motion: Motion;
+}
+
+const CALLOUTS: Callout[] = [
+  {
+    index: "01",
+    title: "Sense your body",
+    desc: "Reads HRV, skin temperature, motion and stress patterns from your Apple Watch, Fitbit, Oura Ring — or the dedicated Soma Band. It runs quietly in the background, so there's never an app to open or a reading to check.",
+    range: [0.1, 0.16, 0.27, 0.33],
+    position: "sm:top-[13%] sm:right-[6%] lg:right-[9%]",
+    motion: "drop",
+  },
+  {
+    index: "02",
+    title: "Read your environment",
+    desc: "Connected to your thermostat, smart lights, plugs and sensors, Soma knows exactly what your room feels like right now — not just what the thermostat is set to.",
+    range: [0.35, 0.41, 0.52, 0.58],
+    position: "sm:top-[42%] sm:left-[5%] lg:left-[8%]",
+    motion: "fade",
+  },
+  {
+    index: "03",
+    title: "Compute your score",
+    desc: "A live Comfort Score from 0–100 fuses your body data with your environment into one number. The engine learns your personal baseline over days and weeks, so it knows what \"comfortable\" actually means for you.",
+    range: [0.6, 0.66, 0.77, 0.83],
+    position: "sm:top-[42%] sm:right-[6%] lg:right-[9%]",
+    motion: "slide",
+  },
+  {
+    index: "04",
+    title: "Adjust invisibly",
+    desc: "Temperature drifts, lights shift, airflow adjusts — before you'd ever notice discomfort. No notifications to dismiss, no dashboard to check. It just works, quietly, in the background.",
+    range: [0.85, 0.89, 0.96, 0.99],
+    position: "sm:bottom-[14%] sm:left-[5%] lg:left-[8%]",
+    motion: "rise",
+  },
+];
+
+const TEXT_SHADOW = "0 1px 3px rgba(0,0,0,1), 0 2px 16px rgba(0,0,0,0.95), 0 0 48px rgba(0,0,0,0.7)";
+
+function ScrollCallout({ callout, progress }: { callout: Callout; progress: MotionValue<number> }) {
+  const opacity = useTransform(progress, (p) => keyframes(p, callout.range, [0, 1, 1, 0]));
+
+  // Each callout enters on its own axis — a drop from above, a plain fade
+  // with no movement, a slide in from the side, or a rise from below — so
+  // scrolling through all four reads as distinct movement, not one repeated
+  // animation firing four times.
+  const isRightSide = callout.position.includes("right");
+  const y = useTransform(progress, (p) => {
+    const t = keyframes(p, callout.range, [0, 1, 1, 0]);
+    if (callout.motion === "drop") return keyframes(p, callout.range, [-48, 0, 0, -16]);
+    if (callout.motion === "rise") return keyframes(p, callout.range, [48, 0, 0, 16]);
+    return (1 - t) * 6;
+  });
+  const x = useTransform(progress, (p) => {
+    if (callout.motion !== "slide") return 0;
+    const from = isRightSide ? 56 : -56;
+    return keyframes(p, callout.range, [from, 0, 0, from * 0.3]);
+  });
 
   return (
-    <motion.p
-      style={{ opacity, y }}
-      className="pointer-events-none absolute inset-x-0 bottom-0 font-display text-2xl italic leading-tight text-white sm:text-3xl"
+    <motion.div
+      style={{ opacity, y, x }}
+      className={`pointer-events-none absolute inset-x-6 bottom-[16%] w-auto max-w-[380px] text-left sm:inset-x-auto sm:bottom-auto sm:max-w-[420px] ${callout.position}`}
     >
-      {beat.text}
-    </motion.p>
+      <span className="font-display text-sm font-bold text-accent" style={{ textShadow: TEXT_SHADOW }}>
+        {callout.index}
+      </span>
+      <h4
+        className="mt-1 font-display text-3xl font-semibold leading-tight text-white sm:text-4xl"
+        style={{ textShadow: TEXT_SHADOW }}
+      >
+        {callout.title}
+      </h4>
+      <p className="mt-3 max-w-[360px] text-[15px] leading-relaxed text-white/80 sm:text-base" style={{ textShadow: TEXT_SHADOW }}>
+        {callout.desc}
+      </p>
+    </motion.div>
   );
+}
+
+function CalloutDot({ index, total, progress }: { index: number; total: number; progress: MotionValue<number> }) {
+  const start = 0.08;
+  const end = 1.0;
+  const opacity = useTransform(progress, (p) => {
+    if (p < start) return 0.3;
+    const local = Math.min(1, (p - start) / (end - start));
+    const active = Math.round(local * (total - 1));
+    return active === index ? 1 : 0.3;
+  });
+  return <motion.span style={{ opacity }} className="h-1.5 w-6 rounded-full bg-accent" />;
 }
 
 export default function Hero() {
@@ -57,13 +133,13 @@ export default function Hero() {
     offset: ["start start", "end end"],
   });
 
-  const textOpacity = useTransform(scrollYProgress, (p) => keyframes(p, [0, 0.09], [1, 0]));
-  const textY = useTransform(scrollYProgress, (p) => keyframes(p, [0, 0.12], [0, -24]));
-  const scrollHintOpacity = useTransform(scrollYProgress, (p) => keyframes(p, [0, 0.1], [1, 0]));
-  const finalLineOpacity = useTransform(scrollYProgress, (p) => keyframes(p, [0.88, 0.97], [0, 1]));
+  const textOpacity = useTransform(scrollYProgress, (p) => keyframes(p, [0, 0.06], [1, 0]));
+  const textY = useTransform(scrollYProgress, (p) => keyframes(p, [0, 0.08], [0, -24]));
+  const scrollHintOpacity = useTransform(scrollYProgress, (p) => keyframes(p, [0, 0.06], [1, 0]));
+  const dotsOpacity = useTransform(scrollYProgress, (p) => keyframes(p, [0.04, 0.09], [0, 1]));
 
   return (
-    <section ref={containerRef} className="relative h-[500vh]">
+    <section ref={containerRef} className="relative h-[700vh]">
       <div className="sticky top-0 h-screen overflow-hidden bg-background">
         <CanyonScrubber progress={scrollYProgress} />
 
@@ -75,14 +151,14 @@ export default function Hero() {
           className="pointer-events-none absolute inset-0 sm:hidden"
           style={{
             background:
-              "linear-gradient(to bottom, rgba(18,13,9,0.6) 0%, rgba(18,13,9,0.25) 40%, rgba(18,13,9,0) 55%)",
+              "linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0) 55%)",
           }}
         />
         <div
           className="pointer-events-none absolute inset-0 hidden sm:block"
           style={{
             background:
-              "linear-gradient(to right, rgba(18,13,9,0.55) 0%, rgba(18,13,9,0.28) 32%, rgba(18,13,9,0) 50%)",
+              "linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.32) 32%, rgba(0,0,0,0) 50%)",
           }}
         />
 
@@ -91,44 +167,46 @@ export default function Hero() {
             style={{ opacity: textOpacity, y: textY }}
             className="pointer-events-none flex flex-col items-start text-left"
           >
-            <span className="mb-4 rounded-full border border-white/25 bg-black/25 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm">
+            <span className="mb-4 flex items-center gap-2 rounded-full border border-white/25 bg-black/25 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-xl">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
               Works with the watch you already own
             </span>
-            <h1 className="font-display text-[clamp(2rem,5vw,3.75rem)] leading-[1.05] text-white">
-              Comfort, <span className="italic text-primary">Automated.</span>
+            <h1 className="font-display text-[clamp(2rem,5vw,3.75rem)] font-medium leading-[1.05] text-white">
+              Comfort, <span className="italic font-extrabold">Automated.</span>
             </h1>
-            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-white/85 sm:text-base">
+            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-white/70 sm:text-base">
               Soma reads your body, learns your preferences, and silently adjusts your environment —
               temperature, light, airflow — before you feel uncomfortable.
             </p>
             <div className="pointer-events-auto mt-8 flex flex-wrap items-center gap-3">
               <a
                 href="#waitlist"
-                className="cursor-pointer rounded-full bg-primary px-6 py-3 text-sm font-semibold text-background transition-transform hover:scale-[1.03]"
+                className="cursor-pointer rounded-full bg-white px-6 py-3 text-sm font-semibold text-black shadow-[0_0_36px_rgba(47,134,255,0.35)] ring-1 ring-accent/30 transition-transform hover:scale-[1.03]"
               >
                 Join the waitlist
               </a>
               <a
                 href="#how-it-works"
-                className="cursor-pointer rounded-full border border-white/30 bg-black/20 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:border-white/50"
+                className="cursor-pointer rounded-full border border-white/30 bg-black/20 px-6 py-3 text-sm font-semibold text-white backdrop-blur-xl transition-colors hover:border-white/50"
               >
                 See how it works
               </a>
             </div>
           </motion.div>
-
-          <div className="relative mt-8 h-24 sm:h-28">
-            {STORY_BEATS.map((beat) => (
-              <StoryBeat key={beat.text} beat={beat} progress={scrollYProgress} />
-            ))}
-            <motion.p
-              style={{ opacity: finalLineOpacity }}
-              className="pointer-events-none absolute inset-x-0 bottom-0 font-display text-2xl italic leading-tight text-white sm:text-3xl"
-            >
-              Comfort, from your wrist.
-            </motion.p>
-          </div>
         </div>
+
+        {CALLOUTS.map((callout) => (
+          <ScrollCallout key={callout.index} callout={callout} progress={scrollYProgress} />
+        ))}
+
+        <motion.div
+          style={{ opacity: dotsOpacity }}
+          className="pointer-events-none absolute inset-x-0 bottom-8 flex justify-center gap-2 sm:bottom-10"
+        >
+          {CALLOUTS.map((callout, i) => (
+            <CalloutDot key={callout.index} index={i} total={CALLOUTS.length} progress={scrollYProgress} />
+          ))}
+        </motion.div>
 
         <motion.div
           style={{ opacity: scrollHintOpacity }}

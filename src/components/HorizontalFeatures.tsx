@@ -87,7 +87,7 @@ export default function HorizontalFeatures() {
                   className="pointer-events-none absolute"
                   style={{
                     background:
-                      "radial-gradient(closest-side, rgba(196,102,61,0.12) 0%, rgba(196,102,61,0) 100%)",
+                      "radial-gradient(closest-side, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 100%)",
                     width: "70vw",
                     height: "70vw",
                     maxWidth: 700,
@@ -118,7 +118,7 @@ export default function HorizontalFeatures() {
                 >
                   {panel.index}
                 </span>
-                <div className="relative flex h-56 w-56 items-center justify-center rounded-full border border-primary/20 bg-surface/70 lg:h-72 lg:w-72">
+                <div className="relative flex h-56 w-56 items-center justify-center rounded-full border border-primary/10 bg-surface/60 backdrop-blur-md lg:h-72 lg:w-72">
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"
